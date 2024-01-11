@@ -5,12 +5,12 @@ contract FundraisingCampaign {
     address public admin;
     
     struct Campaign {
+        uint campaignId;
         string name;
         uint goalAmount;
         uint currentAmount;
         bool isActive;
         uint endTime;
-        uint[] suggestedDonations;
     }
 
     mapping(uint => Campaign) private campaigns;
@@ -35,20 +35,19 @@ contract FundraisingCampaign {
         _;
     }
 
-    function createCampaign(string memory name, uint goalAmount, uint durationInDays, uint[] memory _suggestedDonations) public onlyAdmin {
-        uint endTime = block.timestamp + (durationInDays * 1 days);
-        uint[] memory suggestedDonationsInWei = new uint[](_suggestedDonations.length);
-        for (uint i = 0; i < _suggestedDonations.length; i++) {
-            suggestedDonationsInWei[i] = _suggestedDonations[i] * 1 ether;
-        }
+    function createCampaign(string memory name, uint goalAmount, uint durationInDays) public onlyAdmin {
+        uint endTime = block.timestamp + (durationInDays * 1 days);  //sol. funkcija day= durationInDays * 86400
+
+     
+        
 
         Campaign memory newCampaign = Campaign({
+            campaignId: campaignCount,
             name: name,
             goalAmount: goalAmount * 1 ether,
             currentAmount: 0,
             isActive: true,
-            endTime: endTime,
-            suggestedDonations: suggestedDonationsInWei
+            endTime: endTime
         });
 
         campaigns[campaignCount] = newCampaign;
@@ -58,8 +57,7 @@ contract FundraisingCampaign {
 
     function donateToCampaign(uint campaignId) public payable isActiveCampaign(campaignId) {
         require(msg.sender != admin, "Admin cannot donate to campaigns"); //moze se dodat modifier za ovo npr.user
-        require(isValidDonationAmount(campaignId, msg.value), "Invalid donation amount");
-
+        
         Campaign storage campaign = campaigns[campaignId];
         require(block.timestamp < campaign.endTime, "The campaign has ended");
 
@@ -67,15 +65,6 @@ contract FundraisingCampaign {
         emit FundsDonated(campaignId, msg.sender, msg.value);
     }
 
-    function isValidDonationAmount(uint campaignId, uint amount) internal view returns (bool) {
-        Campaign storage campaign = campaigns[campaignId];
-        for (uint i = 0; i < campaign.suggestedDonations.length; i++) {
-            if (amount == campaign.suggestedDonations[i]) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     function withdrawFunds(uint campaignId) public onlyAdmin {
         Campaign storage campaign = campaigns[campaignId];
@@ -85,14 +74,15 @@ contract FundraisingCampaign {
         campaign.currentAmount = 0;
         campaign.isActive = false;
 
-        address payable adminPayable = payable(admin);
-        adminPayable.transfer(withdrawalAmount);
+        address payable adminPayable  = payable(admin);
+        (bool success, ) = adminPayable.call{value: withdrawalAmount}("");
+        require(success, "Transfer failed.");
 
         emit FundsWithdrawn(campaignId, withdrawalAmount);
     }
 
     function viewCampaignDetails(uint campaignId) public view returns (Campaign memory) {
-        return campaigns[campaignId];
+        return campaigns[campaignId]; //dobijem kampanju po id-u
     }
 
     function updateCampaign(uint campaignId, string memory newName, uint newGoalAmount, uint newDurationInDays) public onlyAdmin isActiveCampaign(campaignId) {
@@ -100,7 +90,7 @@ contract FundraisingCampaign {
 
         campaign.name = newName;
         campaign.goalAmount = newGoalAmount * 1 ether;
-        campaign.endTime = block.timestamp + (newDurationInDays * 1 days);
+        campaign.endTime = block.timestamp + (newDurationInDays * 1 days); //blockchain use unix time, mjeri u milisekundama
 
         emit CampaignUpdated(campaignId, newName, newGoalAmount, campaign.endTime);
     }
@@ -119,3 +109,4 @@ contract FundraisingCampaign {
     return campaigns[campaignId].currentAmount;
 }
 }
+
