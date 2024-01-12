@@ -3,7 +3,6 @@ import './scss/styles.scss'
 import Web3 from 'web3';
 import {Blocks} from 'react-loader-spinner'
 import Modal from 'react-modal';
-import { SimpleDialogContainer, simpleAlert } from 'react-simple-dialogs'
 
 
 import { MetaMaskInpageProvider } from "@metamask/providers";
@@ -313,9 +312,9 @@ function App() {
                       <p className="display-0">Campaign
                         goal: <b>{Web3.utils.fromWei(campaign.goalAmount, 'ether').toString()} Ether</b></p>
 
-                      <input id={campaignId+'_donation'} className="bg-body-secondary" type="number"
+                      <input id={campaign.campaignId+'_donation'} className="bg-body-secondary" type="number"
                              placeholder="donationValue"/>
-                      <button onClick={() => donateToCampaign(campaign, document.getElementById(campaignId+'_donation').value)}>Donate</button>
+                      <button onClick={() => donateToCampaign(campaign, document.getElementById(campaign.campaignId+'_donation').value)}>Donate</button>
                       <button style={isAdmin ? {visibility:"visible"} : {visibility:"hidden"}} onClick={ () => {
                         setCampaignId(campaign.campaignId)
                         setCampaignName(campaign.name)
@@ -328,7 +327,7 @@ function App() {
                   </div>
                 </div>
             ))
-        }
+        } 
       </>
   )
 }
