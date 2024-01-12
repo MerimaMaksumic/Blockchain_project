@@ -1,14 +1,12 @@
+/* eslint-disable prefer-const */
 import React, { useState } from 'react'
 import './scss/styles.scss'
 import Web3 from 'web3';
 import {Blocks} from 'react-loader-spinner'
 import Modal from 'react-modal';
-import { SimpleDialogContainer, simpleAlert } from 'react-simple-dialogs'
-
 
 import { MetaMaskInpageProvider } from "@metamask/providers";
 
-//css
 const customStyles = {
   content: {
     top: '50%',
@@ -51,8 +49,6 @@ function App() {
   const [campaignDuration, setCampaignDuration] = useState(0);
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingOnCreate, setisLoadingOnCreate] = useState(false);
-
 
   const connect = async () => {
     if (window.ethereum) {
@@ -76,7 +72,7 @@ function App() {
     try {
       admin = await contract.methods.admin().call();
     } catch (err) {
-      window.alert(err.toString());
+      window.alert(err.message.toString());
       return
     }
     setIsLoading(false)
@@ -84,13 +80,28 @@ function App() {
   }
 
   const editCampaign = async (campaign: number, newName: string, newGoalAmount: number, newDuration: number) => {
-    const contract = new window.web3.eth.Contract(abi,address); 
+    const contract = new window.web3.eth.Contract(abi,address);
     setIsLoading(true)
     try {
       await contract.methods.updateCampaign(campaign, newName, newGoalAmount, newDuration).send({from: addresses[0]})
     }
     catch (err) {
-      window.alert(err.toString());
+      window.alert(err.message.toString());
+      setIsLoading(false);
+      return
+    }
+    setIsLoading(false);
+  }
+
+  const withDrawFunds = async (campaignId: number)=> {
+    const contract = new window.web3.eth.Contract(abi, address);
+    setIsLoading(true)
+    try {
+      await contract.methods.withdrawFunds(campaignId).send({ from: addresses[0]})
+    }
+    catch (err) {
+      window.alert(err.message.toString());
+      setIsLoading(false)
       return
     }
     setIsLoading(false)
@@ -106,7 +117,7 @@ function App() {
       })
     }
     catch (err) {
-      window.alert(err.toString());
+      window.alert(err.message.toString());
       setIsLoading(false)
       return
     }
@@ -120,7 +131,7 @@ function App() {
       setCampaigns(campaigns);
     }
     catch (err) {
-      window.alert(err.toString());
+      window.alert(err.message.toString());
       setIsLoading(false)
     }
     setIsLoading(false)
@@ -134,7 +145,7 @@ function App() {
       let list = await getCampaigns();
     }
     catch (err) {
-      window.alert(err.toString());
+      window.alert(err.message.toString());
       setIsLoading(false);
     }
     setIsLoading(false)
@@ -167,9 +178,9 @@ function App() {
   return (
       <>
         {
-           addresses.length === 0 &&
-           <main >
-            {isLoading ? (
+            addresses.length === 0 &&
+            <main className="form-signin w-100 m-auto">
+              {isLoading ? (
                   <div
                       style={{
                         width: "100px",
@@ -209,7 +220,6 @@ function App() {
           </div>
         }
         {
-          
             addresses.length > 0 && isAdmin &&
             <div className="container align-content-center justify-content-center text-center">
               {isLoading ? (
@@ -263,9 +273,11 @@ function App() {
                 <button className="btn-close" onClick={() => setModalIsOpen(false)}></button>
                 <h2>Campaign {campaignName}</h2>
                 <p hidden={true} id={campaignId.toString() + '_id'}>{campaignId.toString()}</p>
-                <p>Campaign name: <input onChange={handleCampaignName} id={campaignId + '_name'} className="float-end" type="text"
+                <p>Campaign name: <input onChange={handleCampaignName} id={campaignId + '_name'} className="float-end"
+                                         type="text"
                                          defaultValue={campaignName}/></p>
-                <p>Campaign end time: <input onChange={handleCmapaignDuration} id={campaignId + '_goal_duration'} className="float-end"
+                <p>Campaign end time: <input onChange={handleCmapaignDuration} id={campaignId + '_goal_duration'}
+                                             className="float-end"
                                              type="number" defaultValue={
                   (campaignDuration / 86400000).toString()
                 }/></p>
@@ -291,7 +303,7 @@ function App() {
             campaigns.length > 0 &&
             campaigns.map((campaign, i) => (
                 <div key={campaign.name}
-                 className="container w-100 text-center overflow-hidden align-content-center justify-content-center align-items-center">
+                     className="container w-100 text-center overflow-hidden align-content-center justify-content-center align-items-center">
                   <div key={i} className="bg-body-secondary text-bg-light w-75 m-auto">
 
                     {isLoading ? (
@@ -307,22 +319,32 @@ function App() {
                     <div className="my-3 py-3">
                       <p className="display-0">Campaign name: <b>{campaign.name}</b></p>
                       <p className="display-0">Campaign status <b>{campaign.isActive.toString()}</b></p>
-                      <p className="display-0">Current collected amount: <b>{Web3.utils.fromWei(campaign.currentAmount, 'ether')}</b></p>
+                      <p className="display-0">Current collected
+                        amount: <b>{Web3.utils.fromWei(campaign.currentAmount, 'ether')}</b></p>
                       <p className="display-0">Valid
                         until: <b>{new Date(parseInt(campaign.endTime) * 1000).toString()}</b></p>
                       <p className="display-0">Campaign
                         goal: <b>{Web3.utils.fromWei(campaign.goalAmount, 'ether').toString()} Ether</b></p>
 
-                      <input id={campaignId+'_donation'} className="bg-body-secondary" type="number"
+                      <input id={campaignId + '_donation'} className="bg-body-secondary" type="number"
                              placeholder="donationValue"/>
-                      <button onClick={() => donateToCampaign(campaign, document.getElementById(campaignId+'_donation').value)}>Donate</button>
-                      <button style={isAdmin ? {visibility:"visible"} : {visibility:"hidden"}} onClick={ () => {
+                      <button
+                          onClick={() => donateToCampaign(campaign, document.getElementById(campaignId + '_donation').value)}>Donate
+                      </button>
+                      <button style={isAdmin ? {visibility: "visible"} : {visibility: "hidden"}} onClick={() => {
                         setCampaignId(campaign.campaignId)
                         setCampaignName(campaign.name)
                         setCampaignDuration(parseInt(campaign.endTime.toString()))
                         setCampaignTarget(campaign.goalAmount)
                         setModalIsOpen(true);
-                      } }>Edit</button>
+                      }}>Edit
+                      </button>
+                      <button style={isAdmin ? {visibility: "visible"} : {visibility: "hidden"}} onClick={
+                        () => withDrawFunds(
+                            campaignId
+                        )
+                      }>Withdraw
+                      </button>
                     </div>
                     <div className="bg-body-tertiary shadow-sm mx-auto"></div>
                   </div>
